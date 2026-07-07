@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 import requests
 
-from .config import CONFIG, TELEGRAM_API
+from .config import CONFIG, DISCORD_MESSAGE_LIMIT, TELEGRAM_API
 
 
 def send_telegram(text: str):
@@ -18,6 +18,44 @@ def send_telegram(text: str):
     r = requests.post(url, json=payload, timeout=10)
     if not r.ok:
         print(f"Telegram 送失敗: {r.text}", file=sys.stderr)
+
+
+def _split_discord_message(text: str, limit: int = DISCORD_MESSAGE_LIMIT) -> list[str]:
+    chunks = []
+    current = []
+    current_len = 0
+
+    for line in str(text).splitlines():
+        line_len = len(line) + 1
+        if current and current_len + line_len > limit:
+            chunks.append("\n".join(current))
+            current = []
+            current_len = 0
+        if line_len > limit:
+            for start in range(0, len(line), limit):
+                chunks.append(line[start:start + limit])
+            continue
+        current.append(line)
+        current_len += line_len
+
+    if current:
+        chunks.append("\n".join(current))
+    return chunks or [""]
+
+
+def send_discord(text: str):
+    url = os.environ["DISCORD_WEBHOOK_URL"]
+    for chunk in _split_discord_message(text):
+        r = requests.post(url, json={"content": chunk}, timeout=10)
+        if not r.ok:
+            print(f"Discord send failed: {r.status_code} {r.text}", file=sys.stderr)
+
+
+def send_message(text: str):
+    if os.environ.get("DISCORD_WEBHOOK_URL"):
+        send_discord(text)
+        return
+    send_telegram(text)
 
 
 def _trend_emoji(chg: float) -> str:

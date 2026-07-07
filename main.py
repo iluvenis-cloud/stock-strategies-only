@@ -28,7 +28,7 @@ from stock_strategies.sheet import (
     write_performance,
 )
 from stock_strategies.evaluate import evaluate
-from stock_strategies.notify import send_telegram, format_messages
+from stock_strategies.notify import send_message, format_messages
 from stock_strategies.market import get_market_state, apply_market_filter
 from stock_strategies.night_session import (
     get_night_session,
@@ -40,8 +40,6 @@ from stock_strategies.performance import update_performance, summary as perf_sum
 
 REQUIRED_ENV = [
     "FINMIND_TOKEN",
-    "TELEGRAM_BOT_TOKEN",
-    "TELEGRAM_CHAT_ID",
     "GOOGLE_SHEET_ID",
     "GOOGLE_CREDS_JSON",
 ]
@@ -49,6 +47,10 @@ REQUIRED_ENV = [
 
 def main():
     missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+    has_telegram = os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")
+    has_discord = os.environ.get("DISCORD_WEBHOOK_URL")
+    if not has_telegram and not has_discord:
+        missing.append("DISCORD_WEBHOOK_URL or TELEGRAM_BOT_TOKEN+TELEGRAM_CHAT_ID")
     if missing:
         print(f"❌ 缺少環境變數: {missing}", file=sys.stderr)
         sys.exit(1)
@@ -124,12 +126,12 @@ def main():
     # 7. 發送 Telegram
     print("發送 Telegram...")
     for msg in format_messages(results, watchlist, market=market, night_note=night_note):
-        send_telegram(msg)
+        send_message(msg)
         time.sleep(0.5)
 
     # 8. 若有累積的成績單，額外推一則摘要
     if stats and stats["count"] >= 5:
-        send_telegram(_format_perf_message(stats))
+        send_message(_format_perf_message(stats))
 
     print("✅ 完成")
 

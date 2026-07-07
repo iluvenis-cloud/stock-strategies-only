@@ -18,13 +18,11 @@ except ImportError:
 
 from stock_strategies.night_session import get_night_session
 from stock_strategies.sheet import read_latest_signals
-from stock_strategies.notify import send_telegram, format_premarket
+from stock_strategies.notify import send_message, format_premarket
 
 
 REQUIRED_ENV = [
     "FINMIND_TOKEN",
-    "TELEGRAM_BOT_TOKEN",
-    "TELEGRAM_CHAT_ID",
     "GOOGLE_SHEET_ID",
     "GOOGLE_CREDS_JSON",
 ]
@@ -32,6 +30,10 @@ REQUIRED_ENV = [
 
 def main():
     missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+    has_telegram = os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID")
+    has_discord = os.environ.get("DISCORD_WEBHOOK_URL")
+    if not has_telegram and not has_discord:
+        missing.append("DISCORD_WEBHOOK_URL or TELEGRAM_BOT_TOKEN+TELEGRAM_CHAT_ID")
     if missing:
         print(f"❌ 缺少環境變數: {missing}", file=sys.stderr)
         sys.exit(1)
@@ -57,7 +59,7 @@ def main():
 
     # 3. 發送 Telegram 盤前快報
     print("發送 Telegram 盤前快報...")
-    send_telegram(format_premarket(night, signals))
+    send_message(format_premarket(night, signals))
     print("✅ 完成")
 
 
