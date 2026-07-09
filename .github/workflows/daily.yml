@@ -2,8 +2,9 @@ name: V3 Daily Signal
 
 on:
   schedule:
-    # Taiwan time 14:30 = UTC 06:30, after market close.
-    - cron: "30 6 * * 1-5"
+    # Taiwan time Mon-Fri 20:37 / 21:47 = UTC Mon-Fri 12:37 / 13:47.
+    - cron: "37 12 * * 1-5"
+    - cron: "47 13 * * 1-5"
   workflow_dispatch:
 
 jobs:
